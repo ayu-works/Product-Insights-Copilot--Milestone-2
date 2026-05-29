@@ -1,0 +1,93 @@
+{
+  "product": "groww",
+  "window": {
+    "start": "2026-04-13",
+    "end": "2026-04-19",
+    "weeks": 1
+  },
+  "stats": {
+    "total_reviews": 450,
+    "avg_rating": 3.8,
+    "rating_delta_vs_prev": -0.2
+  },
+  "top_themes": [
+    {
+      "id": "cluster_abc123",
+      "rank": 1,
+      "label": "App Crashes on Portfolio Screen",
+      "description": "Users report the app crashes frequently when opening the portfolio or placing orders, leading to frustration and lost trust.",
+      "sentiment": "negative",
+      "review_count": 120,
+      "representative_review_ids": ["rev001", "rev002", "rev003"]
+    },
+    {
+      "id": "cluster_def456",
+      "rank": 2,
+      "label": "KYC Process Is Slow and Confusing",
+      "description": "Multiple users complain about the lengthy and opaque KYC verification process, causing delays in account activation.",
+      "sentiment": "negative",
+      "review_count": 85,
+      "representative_review_ids": ["rev004", "rev005"]
+    },
+    {
+      "id": "cluster_ghi789",
+      "rank": 3,
+      "label": "Clean UI Makes Investing Simple",
+      "description": "Users praise the clean, intuitive interface that makes investing accessible for beginners.",
+      "sentiment": "positive",
+      "review_count": 95,
+      "representative_review_ids": ["rev006", "rev007"]
+    }
+  ],
+  "quotes": [
+    {
+      "id": "quote_001",
+      "theme_id": "cluster_abc123",
+      "body": "The app crashes every time I try to open my portfolio showing a black screen",
+      "review_id": "rev001",
+      "rating": 1
+    },
+    {
+      "id": "quote_002",
+      "theme_id": "cluster_def456",
+      "body": "KYC took three weeks and I still cannot invest my money",
+      "review_id": "rev004",
+      "rating": 2
+    },
+    {
+      "id": "quote_003",
+      "theme_id": "cluster_ghi789",
+      "body": "Clean and intuitive interface makes investing very simple for complete beginners",
+      "review_id": "rev006",
+      "rating": 5
+    }
+  ],
+  "action_ideas": [
+    {
+      "id": "action_001",
+      "title": "Fix Portfolio Screen Crash",
+      "description": "Investigate and resolve the crash triggered when users open the portfolio view, especially on Android.",
+      "theme_ids": ["cluster_abc123"]
+    },
+    {
+      "id": "action_002",
+      "title": "Streamline KYC Flow",
+      "description": "Reduce KYC turnaround time and add in-app status tracking so users know their verification progress.",
+      "theme_ids": ["cluster_def456"]
+    }
+  ],
+  "what_this_solves": [
+    {
+      "audience": "New investors",
+      "value": "Reliable portfolio access without crashes, enabling confident first investments"
+    },
+    {
+      "audience": "Active traders",
+      "value": "Faster KYC approval so they can start trading without delays"
+    },
+    {
+      "audience": "Product team",
+      "value": "Clear priority list of stability issues to address in the next sprint"
+    }
+  ]
+}

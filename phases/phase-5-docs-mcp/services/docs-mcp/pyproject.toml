@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pulse-docs-mcp"
+version = "0.1.0"
+description = "FastMCP server — Google Docs API wrapper for Pulse Agent"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0",
+    "google-api-python-client>=2.130",
+    "google-auth>=2.30",
+    "google-auth-httplib2>=0.2",
+    "google-auth-oauthlib>=1.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

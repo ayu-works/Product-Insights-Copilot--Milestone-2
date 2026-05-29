@@ -1,0 +1,42 @@
+[
+  {
+    "reviewId": "p1111",
+    "userName": "Alice",
+    "content": "This app makes investing super easy and accessible for everyone",
+    "score": 5,
+    "at": "2026-04-15T11:00:00",
+    "appVersion": "4.2.1"
+  },
+  {
+    "reviewId": "p2222",
+    "userName": "Bob",
+    "content": "Call me on +91-9876543210 for a refund please the app crashed",
+    "score": 1,
+    "at": "2026-04-14T09:30:00",
+    "appVersion": "4.2.0"
+  },
+  {
+    "reviewId": "p3333",
+    "userName": "EmojiLover",
+    "content": "❤️ Love it absolutely amazing",
+    "score": 5,
+    "at": "2026-04-13T14:00:00",
+    "appVersion": "4.2.1"
+  },
+  {
+    "reviewId": "p4444",
+    "userName": "ShortReview",
+    "content": "Great",
+    "score": 5,
+    "at": "2026-04-12T10:00:00",
+    "appVersion": "4.1.0"
+  },
+  {
+    "reviewId": "p5555",
+    "userName": "Charlie",
+    "content": "Excellent mutual fund app with great user interface and smooth experience",
+    "score": 4,
+    "at": "2026-04-11T16:00:00",
+    "appVersion": "4.2.1"
+  }
+]
