@@ -1,0 +1,83 @@
+name: Weekly Pulse
+
+on:
+  schedule:
+    # 01:30 UTC Monday == 07:00 IST Monday (EC7-5: safe buffer past the
+    # Sun 23:30 UTC / Mon 00:00 IST ISO-week boundary)
+    - cron: "30 1 * * 1"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Backfill a specific ISO week (e.g. 2026-W15). Leave empty for the current week."
+        required: false
+        default: ""
+
+defaults:
+  run:
+    working-directory: phases/phase-7-orchestration
+
+env:
+  # API-based embeddings avoid OOM on GitHub-hosted runners (EC7-4)
+  EMBEDDING_PROVIDER: openai
+  PULSE_LOG_LEVEL: INFO
+
+jobs:
+  pulse:
+    name: pulse run (${{ matrix.product }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        product: [indmoney, groww, powermoney, wealthmonitor, kuvera]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Initialise database
+        run: uv run pulse init-db
+
+      - name: Run weekly pulse (deployed MCP server)
+        env:
+          PRODUCT: ${{ matrix.product }}
+          # Deployed thin-REST MCP server (Render) — URL takes precedence over
+          # the local *_MCP_COMMAND stdio path. Draft-only, no idempotency
+          # search on the Docs side (see runbook: "Duplicate section in Doc").
+          PULSE_DOCS_MCP_URL: ${{ secrets.PULSE_DOCS_MCP_URL }}
+          PULSE_GMAIL_MCP_URL: ${{ secrets.PULSE_GMAIL_MCP_URL }}
+          PULSE_GMAIL_TO: ${{ secrets.PULSE_GMAIL_TO }}
+          PULSE_GMAIL_FROM: ${{ secrets.PULSE_GMAIL_FROM }}
+          # Not needed for the REST transport — the deployed server owns its
+          # own Google OAuth credentials; only the local FastMCP subprocess
+          # path requires GOOGLE_CREDENTIALS_JSON.
+          PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
+          PULSE_OPENAI_API_KEY: ${{ secrets.PULSE_OPENAI_API_KEY }}
+          PULSE_CONFIRM_SEND: "false"
+          PULSE_MAX_LLM_COST_USD: "1.0"
+        run: |
+          if [ -n "${{ github.event.inputs.week }}" ]; then
+            uv run pulse run --product "$PRODUCT" --week "${{ github.event.inputs.week }}"
+          else
+            uv run pulse run --product "$PRODUCT" --weeks 10
+          fi
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulse-${{ matrix.product }}-artifacts
+          path: |
+            phases/phase-7-orchestration/data/summaries/
+            phases/phase-7-orchestration/data/artifacts/
+          retention-days: 14
+          if-no-files-found: ignore

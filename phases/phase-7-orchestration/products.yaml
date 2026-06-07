@@ -1,0 +1,29 @@
+products:
+  # gdoc_id and gmail_to are intentionally absent — they come from
+  # PULSE_GDOC_ID and PULSE_GMAIL_TO in phases/.env.
+  # Add them here only if a product needs a different Doc or recipient.
+
+  - key: groww
+    display: "Groww"
+    appstore_id: "1404871982"
+    play_package: "com.nextbillion.groww"
+
+  - key: indmoney
+    display: "INDMoney"
+    appstore_id: "1480128244"
+    play_package: "com.indwealth"
+
+  - key: kuvera
+    display: "Kuvera"
+    appstore_id: "1234567891"
+    play_package: "com.kuverawealth"
+
+  - key: powermoney
+    display: "PowerMoney"
+    appstore_id: "1234567892"
+    play_package: "com.powermoney.app"
+
+  - key: wealthmonitor
+    display: "WealthMonitor"
+    appstore_id: "1234567893"
+    play_package: "com.wealthmonitor.app"

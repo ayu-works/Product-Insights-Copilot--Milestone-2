@@ -22,10 +22,20 @@ class ProductConfig(BaseModel):
         return v.lower()
 
 
+_PHASES_DIR = Path(__file__).parent.parent.parent  # phases/
+_ROOT_DIR   = _PHASES_DIR.parent                   # project root
+
+ENV_FILE = _PHASES_DIR / ".env"
+
+
+def _env_files() -> tuple[Path, ...]:
+    return (_ROOT_DIR / ".env", ENV_FILE)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="PULSE_",
-        env_file=".env",
+        env_file=_env_files(),
         env_file_encoding="utf-8",
         extra="ignore",
     )

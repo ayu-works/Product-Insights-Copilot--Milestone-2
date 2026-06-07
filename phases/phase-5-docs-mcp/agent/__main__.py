@@ -160,31 +160,60 @@ def publish(
         anchor = f"pulse-{product_key}-{iso_week}"
 
         if target in ("docs", "both"):
-            if not settings.docs_mcp_command:
+            if settings.docs_mcp_url:
+                gdoc_id = cached_gdoc_id or settings.gdoc_id
+                if not gdoc_id:
+                    typer.echo(
+                        "No Google Doc ID configured. Set 'gdoc_id' in products.yaml "
+                        "or PULSE_GDOC_ID in .env (the deployed REST server cannot "
+                        "search/create documents).",
+                        err=True,
+                    )
+                    raise typer.Exit(code=1)
+
+                result = asyncio.run(
+                    _publish_docs_rest(
+                        run_id=run,
+                        display_name=display_name,
+                        iso_week=iso_week,
+                        doc_requests=doc_requests,
+                        anchor=anchor,
+                        gdoc_id=gdoc_id,
+                        db_path=settings.db_path,
+                        base_url=settings.docs_mcp_url,
+                    )
+                )
+                deep_link = result["deep_link"]
+                typer.echo(f"Docs: section appended via REST to {gdoc_id}")
+                typer.echo(f"Deep link: {deep_link}")
+
+            elif settings.docs_mcp_command:
+                result = asyncio.run(
+                    _publish_docs(
+                        run_id=run,
+                        product_key=product_key,
+                        display_name=display_name,
+                        iso_week=iso_week,
+                        doc_requests=doc_requests,
+                        anchor=anchor,
+                        cached_gdoc_id=cached_gdoc_id,
+                        db_path=settings.db_path,
+                        products_file=settings.products_file,
+                        mcp_command=settings.docs_mcp_command,
+                    )
+                )
+                deep_link = result["deep_link"]
+                typer.echo(f"Docs: section appended (heading_id={result['heading_id']})")
+                typer.echo(f"Deep link: {deep_link}")
+
+            else:
                 typer.echo(
-                    "PULSE_DOCS_MCP_COMMAND is not set. "
-                    "Configure it in .env to point at services/docs-mcp/server.py",
+                    "Neither PULSE_DOCS_MCP_URL nor PULSE_DOCS_MCP_COMMAND is set. "
+                    "Configure one in .env (URL for the deployed REST server, "
+                    "command to launch services/docs-mcp/server.py locally).",
                     err=True,
                 )
                 raise typer.Exit(code=1)
-
-            result = asyncio.run(
-                _publish_docs(
-                    run_id=run,
-                    product_key=product_key,
-                    display_name=display_name,
-                    iso_week=iso_week,
-                    doc_requests=doc_requests,
-                    anchor=anchor,
-                    cached_gdoc_id=cached_gdoc_id,
-                    db_path=settings.db_path,
-                    products_file=settings.products_file,
-                    mcp_command=settings.docs_mcp_command,
-                )
-            )
-            deep_link = result["deep_link"]
-            typer.echo(f"Docs: section appended (heading_id={result['heading_id']})")
-            typer.echo(f"Deep link: {deep_link}")
         else:
             # When --target gmail only, try to reconstruct deep link from DB
             gdoc_heading_id = run_row["gdoc_heading_id"] or ""
@@ -262,6 +291,61 @@ async def _publish_docs(
             heading_id=result["heading_id"],
         )
         return result
+
+
+def _flatten_doc_requests(doc_requests: list[dict]) -> str:
+    """Collapse a Phase-4 insertText request tree into a flat plain-text string.
+
+    The deployed REST server only accepts a single ``content: str`` field, so
+    rich structure (headings, tables, styling) is lost — this concatenates the
+    inserted text runs in order.
+    """
+    return "".join(
+        req["insertText"]["text"]
+        for req in doc_requests
+        if "insertText" in req
+    )
+
+
+async def _publish_docs_rest(
+    *,
+    run_id: str,
+    display_name: str,
+    iso_week: str,
+    doc_requests: list[dict],
+    anchor: str,
+    gdoc_id: str,
+    db_path: Path,
+    base_url: str,
+) -> dict[str, str]:
+    """Append the pulse section to a Google Doc via the deployed REST server.
+
+    The server has no idempotency search and no rich formatting — it appends
+    plain text (with its own auto-injected timestamp banner) every call.
+    """
+    from agent.rest_client.docs_rest import append_to_doc
+
+    log = structlog.get_logger()
+
+    content = f"{anchor}\n{display_name} — Weekly Pulse ({iso_week})\n\n"
+    content += _flatten_doc_requests(doc_requests)
+
+    await append_to_doc(base_url, gdoc_id, content)
+
+    deep_link = f"https://docs.google.com/document/d/{gdoc_id}/edit"
+
+    conn = get_connection(db_path)
+    try:
+        with conn:
+            conn.execute(
+                "UPDATE runs SET status = 'published_docs' WHERE id = ?",
+                (run_id,),
+            )
+    finally:
+        conn.close()
+
+    log.info("publish_docs_rest_complete", run_id=run_id, doc_id=gdoc_id)
+    return {"heading_id": "", "deep_link": deep_link}
 
 
 # ── run (Phase 7 placeholder) ────────────────────────────────────────────────

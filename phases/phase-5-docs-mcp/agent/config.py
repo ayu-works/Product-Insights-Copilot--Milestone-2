@@ -22,10 +22,23 @@ class ProductConfig(BaseModel):
         return v.lower()
 
 
+# Single .env used by all phases — lives at phases/.env
+# Falls back to project root .env so either location works.
+_PHASES_DIR = Path(__file__).parent.parent.parent     # phases/
+_ROOT_DIR   = _PHASES_DIR.parent                      # project root
+
+ENV_FILE = _PHASES_DIR / ".env"   # canonical single location
+
+
+def _env_files() -> tuple[Path, ...]:
+    """Ordered list of .env files to load (later entry wins on conflict)."""
+    return (_ROOT_DIR / ".env", ENV_FILE)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="PULSE_",
-        env_file=".env",
+        env_file=_env_files(),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -48,13 +61,19 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     max_body_tokens: int = 512
 
-    # Phase 5 — Google Docs MCP (FastMCP server, stdio transport)
-    docs_mcp_command: Optional[str] = None   # e.g. "uv run python services/docs-mcp/server.py"
-    docs_mcp_url: Optional[str] = None       # SSE URL for production
+    # Phase 5 — Google Docs MCP
+    docs_mcp_command: Optional[str] = None
+    docs_mcp_url: Optional[str] = None
+    # Default Google Doc ID — used when products.yaml has no gdoc_id for the product
+    gdoc_id: Optional[str] = None
 
-    # Phase 6 — Gmail MCP (FastMCP server, stdio transport)
-    gmail_mcp_command: Optional[str] = None  # e.g. "uv run python services/gmail-mcp/server.py"
-    gmail_mcp_url: Optional[str] = None      # SSE URL for production
+    # Phase 6 — Gmail MCP
+    gmail_mcp_command: Optional[str] = None
+    gmail_mcp_url: Optional[str] = None
+    # Default recipient — used when products.yaml has no gmail_to for the product
+    gmail_to: Optional[str] = None
+    # Sender address shown in the From header (must match the OAuth account)
+    gmail_from: str = ""
 
 
 def load_products(products_file: Path) -> list[ProductConfig]:

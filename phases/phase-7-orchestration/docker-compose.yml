@@ -1,0 +1,41 @@
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PULSE_DB_PATH: /data/pulse.db
+      PULSE_LOG_LEVEL: INFO
+      PULSE_CONFIRM_SEND: "false"
+      PULSE_DOCS_MCP_COMMAND: "python /app/services/docs-mcp/server.py"
+      PULSE_GMAIL_MCP_COMMAND: "python /app/services/gmail-mcp/server.py"
+    volumes:
+      - pulse-data:/data
+      - ./.env:/app/.env:ro
+      - ./products.yaml:/app/products.yaml:ro
+    command: ["--help"]
+
+  docs-mcp:
+    build:
+      context: services/docs-mcp
+      dockerfile: Dockerfile
+    environment:
+      GOOGLE_CREDENTIALS_JSON: "${GOOGLE_CREDENTIALS_JSON}"
+    command: ["python", "server.py", "--transport", "sse", "--port", "8001"]
+    ports:
+      - "8001:8001"
+
+  gmail-mcp:
+    build:
+      context: services/gmail-mcp
+      dockerfile: Dockerfile
+    environment:
+      GOOGLE_CREDENTIALS_JSON: "${GOOGLE_CREDENTIALS_JSON}"
+      GMAIL_DELEGATED_EMAIL: "${GMAIL_DELEGATED_EMAIL:-}"
+    command: ["python", "server.py", "--transport", "sse", "--port", "8002"]
+    ports:
+      - "8002:8002"
+
+volumes:
+  pulse-data:
+    driver: local

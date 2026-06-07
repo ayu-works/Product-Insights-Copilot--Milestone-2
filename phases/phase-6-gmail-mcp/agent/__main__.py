@@ -163,29 +163,58 @@ def publish(
 
         # ── Docs step ────────────────────────────────────────────────────────
         if target in ("docs", "both"):
-            if not settings.docs_mcp_command:
+            if settings.docs_mcp_url:
+                gdoc_id = cached_gdoc_id or settings.gdoc_id
+                if not gdoc_id:
+                    typer.echo(
+                        "No Google Doc ID configured. Set 'gdoc_id' in products.yaml "
+                        "or PULSE_GDOC_ID in .env (the deployed REST server cannot "
+                        "search/create documents).",
+                        err=True,
+                    )
+                    raise typer.Exit(code=1)
+
+                docs_result = asyncio.run(
+                    _publish_docs_rest(
+                        run_id=run,
+                        display_name=display_name,
+                        iso_week=iso_week,
+                        doc_requests=doc_requests,
+                        anchor=anchor,
+                        gdoc_id=gdoc_id,
+                        db_path=settings.db_path,
+                        base_url=settings.docs_mcp_url,
+                    )
+                )
+                deep_link = docs_result["deep_link"]
+                typer.echo(f"Docs: section appended via REST to {gdoc_id}")
+                typer.echo(f"Deep link: {deep_link}")
+
+            elif settings.docs_mcp_command:
+                docs_result = asyncio.run(
+                    _publish_docs(
+                        run_id=run,
+                        product_key=product_key,
+                        display_name=display_name,
+                        doc_requests=doc_requests,
+                        anchor=anchor,
+                        cached_gdoc_id=cached_gdoc_id,
+                        db_path=settings.db_path,
+                        mcp_command=settings.docs_mcp_command,
+                    )
+                )
+                deep_link = docs_result["deep_link"]
+                typer.echo(f"Docs: section appended (heading_id={docs_result['heading_id']})")
+                typer.echo(f"Deep link: {deep_link}")
+
+            else:
                 typer.echo(
-                    "PULSE_DOCS_MCP_COMMAND is not set. "
-                    "Configure it in .env to point at services/docs-mcp/server.py",
+                    "Neither PULSE_DOCS_MCP_URL nor PULSE_DOCS_MCP_COMMAND is set. "
+                    "Configure one in .env (URL for the deployed REST server, "
+                    "command to launch services/docs-mcp/server.py locally).",
                     err=True,
                 )
                 raise typer.Exit(code=1)
-
-            docs_result = asyncio.run(
-                _publish_docs(
-                    run_id=run,
-                    product_key=product_key,
-                    display_name=display_name,
-                    doc_requests=doc_requests,
-                    anchor=anchor,
-                    cached_gdoc_id=cached_gdoc_id,
-                    db_path=settings.db_path,
-                    mcp_command=settings.docs_mcp_command,
-                )
-            )
-            deep_link = docs_result["deep_link"]
-            typer.echo(f"Docs: section appended (heading_id={docs_result['heading_id']})")
-            typer.echo(f"Deep link: {deep_link}")
 
         elif target == "gmail":
             # Reconstruct deep link from DB for gmail-only re-runs (EC6-2)
@@ -201,42 +230,60 @@ def publish(
 
         # ── Gmail step ───────────────────────────────────────────────────────
         if target in ("gmail", "both"):
-            if not settings.gmail_mcp_command:
-                typer.echo(
-                    "PULSE_GMAIL_MCP_COMMAND is not set. "
-                    "Configure it in .env to point at services/gmail-mcp/server.py",
-                    err=True,
-                )
-                raise typer.Exit(code=1)
-
             if not gmail_to:
                 typer.echo(
                     f"Product '{product_key}' has no gmail_to address configured.", err=True
                 )
                 raise typer.Exit(code=1)
 
-            gmail_result = asyncio.run(
-                _publish_gmail(
-                    run_id=run,
-                    product_key=product_key,
-                    to=gmail_to,
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                    deep_link=deep_link,
-                    confirm_send=settings.confirm_send,
-                    db_path=settings.db_path,
-                    mcp_command=settings.gmail_mcp_command,
+            if settings.gmail_mcp_url:
+                gmail_result = asyncio.run(
+                    _publish_gmail_rest(
+                        run_id=run,
+                        to=gmail_to,
+                        subject=subject,
+                        text_body=text_body,
+                        deep_link=deep_link,
+                        base_url=settings.gmail_mcp_url,
+                    )
                 )
-            )
+                typer.echo(
+                    f"Gmail: draft created via REST (draft_id={gmail_result['draft_id']}). "
+                    "The deployed server only creates drafts — no send/labels available."
+                )
 
-            if gmail_result["sent"]:
-                typer.echo(f"Gmail: email sent (message_id={gmail_result['message_id']})")
+            elif settings.gmail_mcp_command:
+                gmail_result = asyncio.run(
+                    _publish_gmail(
+                        run_id=run,
+                        product_key=product_key,
+                        to=gmail_to,
+                        subject=subject,
+                        html_body=html_body,
+                        text_body=text_body,
+                        deep_link=deep_link,
+                        confirm_send=settings.confirm_send,
+                        db_path=settings.db_path,
+                        mcp_command=settings.gmail_mcp_command,
+                    )
+                )
+
+                if gmail_result["sent"]:
+                    typer.echo(f"Gmail: email sent (message_id={gmail_result['message_id']})")
+                else:
+                    typer.echo(
+                        f"Gmail: draft created (draft_id={gmail_result['draft_id']}). "
+                        "Set PULSE_CONFIRM_SEND=true to send."
+                    )
+
             else:
                 typer.echo(
-                    f"Gmail: draft created (draft_id={gmail_result['draft_id']}). "
-                    "Set PULSE_CONFIRM_SEND=true to send."
+                    "Neither PULSE_GMAIL_MCP_URL nor PULSE_GMAIL_MCP_COMMAND is set. "
+                    "Configure one in .env (URL for the deployed REST server, "
+                    "command to launch services/gmail-mcp/server.py locally).",
+                    err=True,
                 )
+                raise typer.Exit(code=1)
 
     finally:
         conn.close()
@@ -345,6 +392,89 @@ async def _publish_gmail(
             message_id=result.get("message_id", ""),
         )
         return result
+
+
+def _flatten_doc_requests(doc_requests: list[dict[str, Any]]) -> str:
+    """Collapse a Phase-4 insertText request tree into a flat plain-text string.
+
+    The deployed REST server only accepts a single ``content: str`` field, so
+    rich structure (headings, tables, styling) is lost — this concatenates the
+    inserted text runs in order.
+    """
+    return "".join(
+        req["insertText"]["text"]
+        for req in doc_requests
+        if "insertText" in req
+    )
+
+
+async def _publish_docs_rest(
+    *,
+    run_id: str,
+    display_name: str,
+    iso_week: str,
+    doc_requests: list[dict],
+    anchor: str,
+    gdoc_id: str,
+    db_path: Path,
+    base_url: str,
+) -> dict[str, str]:
+    """Append the pulse section to a Google Doc via the deployed REST server.
+
+    The server has no idempotency search and no rich formatting — it appends
+    plain text (with its own auto-injected timestamp banner) every call.
+    """
+    from agent.rest_client.docs_rest import append_to_doc
+
+    log = structlog.get_logger()
+
+    content = f"{anchor}\n{display_name} — Weekly Pulse ({iso_week})\n\n"
+    content += _flatten_doc_requests(doc_requests)
+
+    await append_to_doc(base_url, gdoc_id, content)
+
+    deep_link = f"https://docs.google.com/document/d/{gdoc_id}/edit"
+
+    conn = get_connection(db_path)
+    try:
+        with conn:
+            conn.execute(
+                "UPDATE runs SET status = 'published_docs' WHERE id = ?",
+                (run_id,),
+            )
+    finally:
+        conn.close()
+
+    log.info("publish_docs_rest_complete", run_id=run_id, doc_id=gdoc_id)
+    return {"heading_id": "", "deep_link": deep_link}
+
+
+async def _publish_gmail_rest(
+    *,
+    run_id: str,
+    to: str,
+    subject: str,
+    text_body: str,
+    deep_link: str,
+    base_url: str,
+) -> dict[str, Any]:
+    """Create a Gmail draft via the deployed REST server.
+
+    The server has no idempotency search, no cc/bcc/custom headers, no HTML
+    body, and never sends — it only ever creates a plain-text draft (with its
+    own auto-injected timestamp banner).
+    """
+    from agent.rest_client.gmail_rest import create_email_draft
+
+    log = structlog.get_logger()
+
+    body = text_body.replace("{DOC_DEEP_LINK}", deep_link)
+
+    result = await create_email_draft(base_url, to, subject, body)
+    draft_id = result.get("draft_id", "")
+
+    log.info("publish_gmail_rest_complete", run_id=run_id, draft_id=draft_id)
+    return {"message_id": "", "draft_id": draft_id, "sent": False}
 
 
 # ── run (Phase 7 placeholder) ────────────────────────────────────────────────
