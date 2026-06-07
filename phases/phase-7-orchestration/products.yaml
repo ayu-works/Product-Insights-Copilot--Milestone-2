@@ -11,7 +11,7 @@ products:
   - key: indmoney
     display: "INDMoney"
     appstore_id: "1480128244"
-    play_package: "com.indwealth"
+    play_package: "in.indwealth"
 
   - key: kuvera
     display: "Kuvera"

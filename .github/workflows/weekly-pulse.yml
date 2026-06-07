@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        product: [indmoney, groww, powermoney, wealthmonitor, kuvera]
+        product: [groww]
 
     steps:
       - uses: actions/checkout@v4
