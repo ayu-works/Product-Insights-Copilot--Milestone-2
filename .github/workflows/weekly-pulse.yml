@@ -17,8 +17,11 @@ defaults:
     working-directory: phases/phase-7-orchestration
 
 env:
-  # API-based embeddings avoid OOM on GitHub-hosted runners (EC7-4)
-  EMBEDDING_PROVIDER: openai
+  # Local sentence-transformers embeddings (BAAI/bge-small-en-v1.5) — matches
+  # the local dev setup and needs no API key. Small model (~130MB), should fit
+  # comfortably in ubuntu-latest's ~7GB RAM (EC7-4 risk noted in the runbook
+  # if review volume grows large enough to warrant switching to "openai").
+  PULSE_EMBEDDING_PROVIDER: local
   PULSE_LOG_LEVEL: INFO
 
 jobs:
@@ -61,7 +64,6 @@ jobs:
           # own Google OAuth credentials; only the local FastMCP subprocess
           # path requires GOOGLE_CREDENTIALS_JSON.
           PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
-          PULSE_OPENAI_API_KEY: ${{ secrets.PULSE_OPENAI_API_KEY }}
           PULSE_CONFIRM_SEND: "false"
           PULSE_MAX_LLM_COST_USD: "1.0"
         run: |
