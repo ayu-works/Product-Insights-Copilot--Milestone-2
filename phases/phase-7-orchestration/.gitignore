@@ -14,9 +14,6 @@ build/
 venv/
 env/
 
-# uv
-uv.lock
-
 # Environment / secrets
 .env
 *.env.local
