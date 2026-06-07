@@ -50,6 +50,19 @@ jobs:
       - name: Initialise database
         run: uv run pulse init-db
 
+      - name: Debug -- Groq connectivity check
+        env:
+          PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
+        run: |
+          echo "--- DNS ---"
+          getent hosts api.groq.com || true
+          echo "--- curl (verbose) ---"
+          curl -sv -o /tmp/groq_resp.json -w "\nHTTP %{http_code}  connect=%{time_connect}s  total=%{time_total}s\n" \
+            https://api.groq.com/openai/v1/models \
+            -H "Authorization: Bearer $PULSE_GROQ_API_KEY" || true
+          echo "--- response body (first 500 chars) ---"
+          head -c 500 /tmp/groq_resp.json || true
+
       - name: Run weekly pulse (deployed MCP server)
         env:
           PRODUCT: ${{ matrix.product }}
