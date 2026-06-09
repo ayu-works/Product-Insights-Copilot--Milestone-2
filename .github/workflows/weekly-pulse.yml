@@ -59,6 +59,41 @@ jobs:
       - name: Initialise database
         run: uv run pulse init-db
 
+      - name: Probe Groq connectivity (diagnostic)
+        env:
+          PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
+        run: |
+          echo "==================================================================="
+          echo "0. WARP / egress IP identity (Cloudflare trace)"
+          echo "==================================================================="
+          # If 'warp=on' or 'warp=plus' appears, traffic IS going through WARP.
+          curl -s --max-time 15 https://www.cloudflare.com/cdn-cgi/trace/ || echo "  -> trace fetch FAILED"
+          echo
+          echo "==================================================================="
+          echo "1. DNS resolution of api.groq.com"
+          echo "==================================================================="
+          getent hosts api.groq.com || echo "  -> DNS resolution FAILED"
+          echo
+          echo "==================================================================="
+          echo "2. Raw TCP connect to api.groq.com:443 (transport layer)"
+          echo "==================================================================="
+          # Times out / refuses if the IP is blocked at the edge before TLS.
+          timeout 15 bash -c 'cat < /dev/null > /dev/tcp/api.groq.com/443' \
+            && echo "  -> TCP connect OK" \
+            || echo "  -> TCP connect FAILED (refused/timed out -> network/IP block)"
+          echo
+          echo "==================================================================="
+          echo "3. Authenticated HTTPS call to the real endpoint"
+          echo "==================================================================="
+          # -v shows the TLS handshake + HTTP status. We expect 200 (or 401 if key
+          # is the issue). A hang/curl-error here = same failure the SDK hits.
+          curl -sS -v --max-time 30 https://api.groq.com/openai/v1/models \
+            -H "Authorization: Bearer ${PULSE_GROQ_API_KEY}" \
+            -o /dev/null -w "  -> HTTP status: %{http_code}  (connect=%{time_connect}s total=%{time_total}s)\n" \
+            || echo "  -> curl FAILED -> confirms transport-level failure (not auth/HTTP)"
+          echo
+          echo "Diagnostic complete. Key is masked by GitHub; safe to read this log."
+
       - name: Run weekly pulse
         env:
           PRODUCT: ${{ matrix.product }}
