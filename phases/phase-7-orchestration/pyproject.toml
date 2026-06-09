@@ -36,6 +36,7 @@ dependencies = [
     "opentelemetry-api>=1.25",
     "opentelemetry-sdk>=1.25",
     "opentelemetry-exporter-otlp>=1.25",
+    "groq>=1.4.0",
 ]
 
 [project.scripts]

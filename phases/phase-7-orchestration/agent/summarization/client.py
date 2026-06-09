@@ -326,9 +326,9 @@ class GroqLLMClient:
         max_cost_usd: float = 1.0,
         max_tokens_per_run: int = 100_000,
     ) -> None:
-        from openai import OpenAI  # type: ignore[import-untyped]
+        from groq import Groq  # type: ignore[import-untyped]
 
-        self._client = OpenAI(api_key=api_key, base_url=_GROQ_BASE_URL)
+        self._client = Groq(api_key=api_key)
         self._model = model
         self._max_cost = max_cost_usd
         self._max_tokens = max_tokens_per_run
