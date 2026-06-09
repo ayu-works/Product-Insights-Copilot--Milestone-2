@@ -23,8 +23,9 @@ env:
 jobs:
   pulse:
     name: pulse run (${{ matrix.product }})
-    # Running on macOS to bypass datacenter IP blocks (Azure IPs) from Groq API
-    runs-on: macos-latest
+    # Switching back to ubuntu-latest but explicitly disabling IPv6, which
+    # is a known cause for 'Connection error' to dual-stack APIs like Groq.
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -33,6 +34,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: Disable IPv6
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
