@@ -34,6 +34,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Bypass IP Block via Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.2
+        with:
+          stack: dual
         
       - name: Disable IPv6
         run: |
