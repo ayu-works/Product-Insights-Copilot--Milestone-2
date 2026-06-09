@@ -178,7 +178,7 @@ class AnthropicLLMClient:
 
         for attempt in range(self._MAX_RETRIES):
             try:
-                response = self._client.messages.create(
+                response = self._client.messages.create(  # type: ignore
                     model=self._model,
                     max_tokens=2048,
                     system=system,
