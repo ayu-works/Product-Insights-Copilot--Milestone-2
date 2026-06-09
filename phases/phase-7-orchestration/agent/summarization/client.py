@@ -399,6 +399,7 @@ class GroqLLMClient:
             except Exception as exc:
                 last_exc = exc
                 wait = self._BACKOFF_SECS[min(attempt, len(self._BACKOFF_SECS) - 1)]
+                import traceback as _tb
                 log.warning(
                     "llm_retry",
                     provider="groq",
@@ -406,6 +407,9 @@ class GroqLLMClient:
                     attempt=attempt + 1,
                     wait=wait,
                     error=str(exc),
+                    exc_type=type(exc).__name__,
+                    cause=repr(getattr(exc, "__cause__", None)),
+                    traceback=_tb.format_exc(),
                 )
                 if attempt < self._MAX_RETRIES - 1:
                     time.sleep(wait)
