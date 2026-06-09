@@ -23,8 +23,6 @@ env:
 jobs:
   pulse:
     name: pulse run (${{ matrix.product }})
-    # Switching back to ubuntu-latest but explicitly disabling IPv6, which
-    # is a known cause for 'Connection error' to dual-stack APIs like Groq.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,16 +32,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Bypass IP Block via Cloudflare WARP
-        uses: fscarmen/warp-on-actions@v1.2
-        with:
-          stack: dual
-        
-      - name: Disable IPv6
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -67,6 +55,7 @@ jobs:
           PULSE_GMAIL_TO: ${{ secrets.PULSE_GMAIL_TO }}
           PULSE_GMAIL_FROM: ${{ secrets.PULSE_GMAIL_FROM }}
           PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
+          PULSE_GDOC_ID: ${{ secrets.PULSE_GDOC_ID }}
           PULSE_CONFIRM_SEND: "false"
           PULSE_MAX_LLM_COST_USD: "1.0"
         run: |

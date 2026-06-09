@@ -406,6 +406,7 @@ class GroqLLMClient:
                     attempt=attempt + 1,
                     wait=wait,
                     error=str(exc),
+                    exc_type=type(exc).__name__,
                 )
                 if attempt < self._MAX_RETRIES - 1:
                     time.sleep(wait)
