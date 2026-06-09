@@ -23,8 +23,6 @@ env:
 jobs:
   pulse:
     name: pulse run (${{ matrix.product }})
-    # Switching back to ubuntu-latest but explicitly disabling IPv6, which
-    # is a known cause for 'Connection error' to dual-stack APIs like Groq.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,16 +32,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Bypass IP Block via Cloudflare WARP
-        uses: fscarmen/warp-on-actions@v1.2
-        with:
-          stack: dual
-        
-      - name: Disable IPv6
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -58,79 +46,6 @@ jobs:
 
       - name: Initialise database
         run: uv run pulse init-db
-
-      - name: Probe Groq connectivity (diagnostic)
-        env:
-          PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
-        run: |
-          echo "==================================================================="
-          echo "0. WARP / egress IP identity (Cloudflare trace)"
-          echo "==================================================================="
-          # If 'warp=on' or 'warp=plus' appears, traffic IS going through WARP.
-          curl -s --max-time 15 https://www.cloudflare.com/cdn-cgi/trace/ || echo "  -> trace fetch FAILED"
-          echo
-          echo "==================================================================="
-          echo "1. DNS resolution of api.groq.com"
-          echo "==================================================================="
-          getent hosts api.groq.com || echo "  -> DNS resolution FAILED"
-          echo
-          echo "==================================================================="
-          echo "2. Raw TCP connect to api.groq.com:443 (transport layer)"
-          echo "==================================================================="
-          # Times out / refuses if the IP is blocked at the edge before TLS.
-          timeout 15 bash -c 'cat < /dev/null > /dev/tcp/api.groq.com/443' \
-            && echo "  -> TCP connect OK" \
-            || echo "  -> TCP connect FAILED (refused/timed out -> network/IP block)"
-          echo
-          echo "==================================================================="
-          echo "3. Authenticated HTTPS call to the real endpoint"
-          echo "==================================================================="
-          # -v shows the TLS handshake + HTTP status. We expect 200 (or 401 if key
-          # is the issue). A hang/curl-error here = same failure the SDK hits.
-          curl -sS -v --max-time 30 https://api.groq.com/openai/v1/models \
-            -H "Authorization: Bearer ${PULSE_GROQ_API_KEY}" \
-            -o /dev/null -w "  -> HTTP status: %{http_code}  (connect=%{time_connect}s total=%{time_total}s)\n" \
-            || echo "  -> curl FAILED -> confirms transport-level failure (not auth/HTTP)"
-          echo
-          echo "Diagnostic complete. Key is masked by GitHub; safe to read this log."
-
-      - name: Probe Groq via Python SDK (diagnostic)
-        env:
-          PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
-        run: |
-          echo "=== proxy / network env seen by Python ==="
-          env | grep -iE "proxy|^no_proxy" || echo "  (no proxy vars set)"
-          echo
-          echo "=== reproduce the exact failing SDK call, full traceback ==="
-          uv run python - <<'PY'
-          import os, traceback, httpx, groq
-          print("httpx:", httpx.__version__, "| groq:", groq.__version__)
-          key = os.environ.get("PULSE_GROQ_API_KEY", "")
-          print("api key present:", bool(key), "len:", len(key))
-
-          # 1) bare httpx GET (no SDK) — does httpx itself reach Groq?
-          try:
-              r = httpx.get("https://api.groq.com/openai/v1/models",
-                            headers={"Authorization": f"Bearer {key}"}, timeout=30)
-              print("bare httpx GET status:", r.status_code)
-          except Exception:
-              print("bare httpx GET FAILED:")
-              traceback.print_exc()
-
-          # 2) the real groq SDK chat call — the exact thing that fails
-          try:
-              c = groq.Groq(api_key=key)
-              resp = c.chat.completions.create(
-                  model="llama-3.3-70b-versatile",
-                  messages=[{"role": "user", "content": "ping"}],
-                  max_tokens=5,
-              )
-              print("groq SDK chat OK:", resp.choices[0].message.content)
-          except Exception:
-              print("groq SDK chat FAILED:")
-              traceback.print_exc()
-          PY
-          echo "Python SDK diagnostic complete."
 
       - name: Run weekly pulse
         env:
