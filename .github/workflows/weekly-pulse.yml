@@ -27,7 +27,7 @@ env:
 jobs:
   pulse:
     name: pulse run (${{ matrix.product }})
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
