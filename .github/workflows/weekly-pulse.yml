@@ -11,10 +11,6 @@ on:
         required: false
         default: ""
 
-defaults:
-  run:
-    working-directory: phases/phase-7-orchestration
-
 env:
   # Local sentence-transformers embeddings (BAAI/bge-small-en-v1.5)
   PULSE_EMBEDDING_PROVIDER: local
@@ -71,8 +67,8 @@ jobs:
         with:
           name: pulse-${{ matrix.product }}-artifacts
           path: |
-            phases/phase-7-orchestration/data/summaries/
-            phases/phase-7-orchestration/data/artifacts/
+            data/summaries/
+            data/artifacts/
           retention-days: 14
           if-no-files-found: ignore
 
