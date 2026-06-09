@@ -420,7 +420,7 @@ def render(
             conn.execute("UPDATE runs SET status = 'rendered' WHERE id = ?", (run,))
 
         log.info("render_complete", run_id=run, doc_requests=len(doc_requests))
-        typer.echo(f"Rendered run {run}: {len(doc_requests)} doc requests → {artifact_dir}")
+        typer.echo(f"Rendered run {run}: {len(doc_requests)} doc requests -> {artifact_dir}")
         typer.echo(f"Subject: {subject}")
     finally:
         conn.close()
@@ -471,7 +471,7 @@ def publish(
             cfg = get_product(product_key, settings.products_file)
             display_name = cfg.display
             cached_gdoc_id: str | None = cfg.gdoc_id
-            gmail_to = cfg.gmail_to
+            gmail_to = cfg.gmail_to or settings.gmail_to
         except KeyError:
             display_name = product_key.title()
             cached_gdoc_id = None
