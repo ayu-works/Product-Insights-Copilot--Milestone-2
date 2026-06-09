@@ -140,6 +140,7 @@ jobs:
           PULSE_GMAIL_TO: ${{ secrets.PULSE_GMAIL_TO }}
           PULSE_GMAIL_FROM: ${{ secrets.PULSE_GMAIL_FROM }}
           PULSE_GROQ_API_KEY: ${{ secrets.PULSE_GROQ_API_KEY }}
+          PULSE_GDOC_ID: ${{ secrets.PULSE_GDOC_ID }}
           PULSE_CONFIRM_SEND: "false"
           PULSE_MAX_LLM_COST_USD: "1.0"
         run: |
