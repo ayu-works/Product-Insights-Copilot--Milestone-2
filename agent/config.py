@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import BaseModel, field_validator
@@ -9,9 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ProductConfig(BaseModel):
     key: str
     display: str
-    appstore_id: Optional[str] = None
-    play_package: Optional[str] = None
-    gdoc_id: Optional[str] = None
+    appstore_id: str | None = None
+    play_package: str | None = None
+    gdoc_id: str | None = None
     gmail_to: str = ""
 
     @field_validator("key")
@@ -56,27 +55,27 @@ class Settings(BaseSettings):
     # Phase 3 — LLM
     llm_provider: str = "groq"
     llm_model: str = "llama-3.3-70b-versatile"
-    groq_api_key: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
+    groq_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    openai_api_key: str | None = None
     max_body_tokens: int = 512
 
     # Phase 5 — Google Docs MCP
-    docs_mcp_command: Optional[str] = None
-    docs_mcp_url: Optional[str] = None
+    docs_mcp_command: str | None = None
+    docs_mcp_url: str | None = None
     # Default Google Doc ID — used when products.yaml has no gdoc_id for the product
-    gdoc_id: Optional[str] = None
+    gdoc_id: str | None = None
 
     # Phase 6 — Gmail MCP
-    gmail_mcp_command: Optional[str] = None
-    gmail_mcp_url: Optional[str] = None
+    gmail_mcp_command: str | None = None
+    gmail_mcp_url: str | None = None
     # Default recipient — used when products.yaml has no gmail_to for the product
-    gmail_to: Optional[str] = None
+    gmail_to: str | None = None
     # Sender address shown in the From header (must match the OAuth account)
     gmail_from: str = ""
 
     # Phase 7 — orchestration & observability
-    otel_exporter_endpoint: Optional[str] = None
+    otel_exporter_endpoint: str | None = None
     mcp_retry_wait_seconds: int = 10
     mcp_max_retries: int = 1
     cost_spike_multiplier: float = 3.0

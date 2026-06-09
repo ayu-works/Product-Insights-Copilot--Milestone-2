@@ -5,9 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 import structlog
@@ -197,7 +195,6 @@ def persist_clusters(
     run_id: str,
     clusters: list[ClusterResult],
 ) -> None:
-    now = datetime.now(timezone.utc).isoformat()
     # Clear any existing clusters for this run (idempotent re-run)
     conn.execute("DELETE FROM clusters WHERE run_id = ?", (run_id,))
     for c in clusters:
@@ -285,7 +282,7 @@ def run_clustering_pipeline(
     clusters: list[ClusterResult] = []
 
     for label in label_set:
-        indices = [i for i, l in enumerate(labels) if l == label]
+        indices = [i for i, lbl in enumerate(labels) if lbl == label]
         medoid_id, reps = select_representatives(indices, embeddings, review_ids, ratings)
         cluster_texts = [texts[i] for i in indices]
         keyphrases = extract_keyphrases(cluster_texts)
@@ -300,7 +297,7 @@ def run_clustering_pipeline(
         )
 
     # Handle noise reviews as a single cluster if any exist
-    noise_indices = [i for i, l in enumerate(labels) if l == -1]
+    noise_indices = [i for i, lbl in enumerate(labels) if lbl == -1]
     if noise_indices:
         log.info("clustering_noise_reviews", count=len(noise_indices))
 

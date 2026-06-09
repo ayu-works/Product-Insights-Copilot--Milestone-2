@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import re
 import time
-from dataclasses import dataclass, field
-from typing import Any, Optional, Protocol, runtime_checkable
+from dataclasses import dataclass
+from typing import Any, Protocol, runtime_checkable
 
 import structlog
 
@@ -117,7 +117,7 @@ class AnthropicLLMClient:
     def __init__(
         self,
         model: str = "claude-haiku-4-5-20251001",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         max_cost_usd: float = 1.0,
         max_tokens_per_run: int = 100_000,
     ) -> None:
@@ -227,8 +227,8 @@ class OpenAILLMClient:
     def __init__(
         self,
         model: str = "gpt-4o-mini",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         max_cost_usd: float = 1.0,
         max_tokens_per_run: int = 100_000,
     ) -> None:
@@ -322,7 +322,7 @@ class GroqLLMClient:
     def __init__(
         self,
         model: str = "llama-3.3-70b-versatile",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         max_cost_usd: float = 1.0,
         max_tokens_per_run: int = 100_000,
     ) -> None:
@@ -427,7 +427,7 @@ class MockLLMClient:
         self,
         responses: list[dict[str, Any]],
         tokens_per_call: int = 100,
-        fail_after_calls: Optional[int] = None,
+        fail_after_calls: int | None = None,
     ) -> None:
         self._responses = list(responses)
         self._idx = 0

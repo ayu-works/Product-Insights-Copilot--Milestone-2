@@ -1,4 +1,5 @@
 import logging
+
 import structlog
 from structlog.contextvars import bind_contextvars, clear_contextvars, merge_contextvars
 

@@ -3,15 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 import typer
 
 from agent.config import get_product, settings
-from agent.helpers import make_run_id, current_iso_week
+from agent.helpers import current_iso_week, make_run_id
 from agent.logging_setup import bind_run_context, configure_logging
 from agent.models import RawReview
 from agent.storage import get_connection, init_db
@@ -31,7 +31,7 @@ def _setup() -> None:
 
 def _upsert_reviews_counted(conn: sqlite3.Connection, reviews: list[RawReview]) -> tuple[int, int]:
     """Return (new_inserts, updates) counts."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     new_inserts = 0
     updates = 0
     for r in reviews:
@@ -94,7 +94,7 @@ def _ensure_run(
     iso_week: str,
     weeks: int,
 ) -> None:
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     window_start = (today - timedelta(weeks=weeks)).isoformat()
     window_end = today.isoformat()
     conn.execute(
@@ -192,7 +192,7 @@ def ingest(
 @app.command()
 def cluster(
     run: str = typer.Option(..., "--run", "-r", help="Run ID"),
-    provider: Optional[str] = typer.Option(None, "--provider", help="Override embedding provider (openai|local)"),
+    provider: str | None = typer.Option(None, "--provider", help="Override embedding provider (openai|local)"),
     min_cluster_size: int = typer.Option(8, "--min-cluster-size", help="HDBSCAN min_cluster_size"),
 ) -> None:
     """Embed reviews and produce HDBSCAN clusters for a run."""
@@ -230,7 +230,7 @@ def cluster(
                 rating=r["rating"],
                 title=r["title"],
                 body=r["body"] or "",
-                posted_at=datetime.fromisoformat(r["posted_at"]).replace(tzinfo=timezone.utc),
+                posted_at=datetime.fromisoformat(r["posted_at"]).replace(tzinfo=UTC),
                 version=r["version"],
                 language=r["language"] or "en",
                 country=r["country"] or "IN",
@@ -271,14 +271,13 @@ def cluster(
 @app.command()
 def summarize(
     run: str = typer.Option(..., "--run", "-r", help="Run ID"),
-    provider: Optional[str] = typer.Option(None, "--provider", help="LLM provider override (anthropic|openai)"),
-    model: Optional[str] = typer.Option(None, "--model", help="LLM model override"),
+    provider: str | None = typer.Option(None, "--provider", help="LLM provider override (anthropic|openai)"),
+    model: str | None = typer.Option(None, "--model", help="LLM model override"),
     max_themes: int = typer.Option(3, "--max-themes", help="Max themes in PulseSummary"),
 ) -> None:
     """Summarize clusters into themes, quotes, and action ideas via LLM."""
     _setup()
     bind_run_context(run)
-    log = structlog.get_logger()
 
     init_db(settings.db_path)
     conn = get_connection(settings.db_path)
@@ -290,9 +289,13 @@ def summarize(
             raise typer.Exit(code=1)
 
         from datetime import date
+
         from agent.models import Window
         from agent.summarization.client import (
-            AnthropicLLMClient, GroqLLMClient, OpenAILLMClient, PulseCostExceeded,
+            AnthropicLLMClient,
+            GroqLLMClient,
+            OpenAILLMClient,
+            PulseCostExceeded,
         )
         from agent.summarization.pipeline import summarize_pulse
 
@@ -624,8 +627,8 @@ async def _publish_docs(
     db_path: Path,
     mcp_command: str,
 ) -> dict[str, str]:
+    from agent.mcp_client.docs_ops import append_pulse_section, resolve_document
     from agent.mcp_client.session import open_docs_session
-    from agent.mcp_client.docs_ops import resolve_document, append_pulse_section
 
     log = structlog.get_logger()
 
@@ -678,8 +681,8 @@ async def _publish_gmail(
     db_path: Path,
     mcp_command: str,
 ) -> dict[str, Any]:
-    from agent.mcp_client.session import open_gmail_session
     from agent.mcp_client.gmail_ops import send_pulse_email
+    from agent.mcp_client.session import open_gmail_session
 
     log = structlog.get_logger()
 
@@ -805,7 +808,7 @@ async def _publish_gmail_rest(
 def run_pipeline(
     product: str = typer.Option(..., "--product", "-p", help="Product key"),
     weeks: int = typer.Option(10, "--weeks", "-w", help="Number of weeks to ingest"),
-    week: Optional[str] = typer.Option(None, "--week", help="Specific ISO week (e.g. 2026-W16)"),
+    week: str | None = typer.Option(None, "--week", help="Specific ISO week (e.g. 2026-W16)"),
 ) -> None:
     """Run the full ingest -> cluster -> summarize -> render -> publish pipeline.
 

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -24,7 +23,7 @@ def _review_id(external_id: str) -> str:
     return hashlib.sha1(f"appstore{external_id}".encode()).hexdigest()
 
 
-def _parse_entry(entry: dict, product_key: str, country: str) -> Optional[RawReview]:
+def _parse_entry(entry: dict, product_key: str, country: str) -> RawReview | None:
     """Parse one iTunes RSS entry dict into a RawReview.
 
     Entries without `im:rating` are app-info rows, not reviews — skip them.
@@ -42,7 +41,7 @@ def _parse_entry(entry: dict, product_key: str, country: str) -> Optional[RawRev
         try:
             posted_at = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
-            posted_at = datetime.now(timezone.utc)
+            posted_at = datetime.now(UTC)
 
         return RawReview(
             id=_review_id(external_id),
@@ -64,7 +63,7 @@ def _parse_entry(entry: dict, product_key: str, country: str) -> Optional[RawRev
 def fetch_appstore_reviews(
     product: ProductConfig,
     country: str = "in",
-    client: Optional[httpx.Client] = None,
+    client: httpx.Client | None = None,
 ) -> list[RawReview]:
     """Fetch up to 10 pages of App Store reviews for *product*.
 

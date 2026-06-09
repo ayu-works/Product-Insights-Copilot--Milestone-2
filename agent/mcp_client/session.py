@@ -12,8 +12,8 @@ the server URL instead of a command string.
 from __future__ import annotations
 
 import shlex
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import structlog
 from mcp import ClientSession, StdioServerParameters

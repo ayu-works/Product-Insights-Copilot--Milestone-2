@@ -68,7 +68,7 @@ def is_english(text: str) -> bool:
     if not stripped:
         return True
     try:
-        from langdetect import detect, LangDetectException  # type: ignore[import-untyped]
+        from langdetect import detect  # type: ignore[import-untyped]
 
         return detect(stripped) == "en"
     except Exception:

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import struct
 from pathlib import Path
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 import structlog
@@ -36,7 +35,7 @@ class EmbeddingProvider(Protocol):
 class OpenAIEmbeddingProvider:
     _MODEL = "text-embedding-3-small"
 
-    def __init__(self, api_key: Optional[str] = None) -> None:
+    def __init__(self, api_key: str | None = None) -> None:
         from openai import OpenAI  # type: ignore[import-untyped]
         self._client = OpenAI(api_key=api_key)
 
@@ -73,7 +72,7 @@ class LocalEmbeddingProvider:
         return vecs.tolist()
 
 
-def get_provider(provider_name: str, api_key: Optional[str] = None) -> EmbeddingProvider:
+def get_provider(provider_name: str, api_key: str | None = None) -> EmbeddingProvider:
     if provider_name == "openai":
         return OpenAIEmbeddingProvider(api_key=api_key)
     if provider_name == "local":
@@ -107,7 +106,7 @@ class EmbeddingCache:
     def _key(text: str) -> str:
         return hashlib.sha1(text.encode()).hexdigest()
 
-    def get(self, text: str) -> Optional[list[float]]:
+    def get(self, text: str) -> list[float] | None:
         return self._data.get(self._key(text))
 
     def set(self, text: str, embedding: list[float]) -> None:
@@ -141,7 +140,7 @@ def embed_reviews(
     Returns (embeddings_array, cache_hits, cache_misses).
     embeddings_array shape: (len(texts), provider.dimensions)
     """
-    result: list[Optional[list[float]]] = [None] * len(texts)
+    result: list[list[float] | None] = [None] * len(texts)
     to_embed: list[tuple[int, str]] = []
     hits = 0
 

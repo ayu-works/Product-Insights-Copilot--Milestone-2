@@ -11,7 +11,7 @@ Run (stdio, launched as a subprocess by the agent):
 from __future__ import annotations
 
 import itertools
-from typing import Any, Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -45,7 +45,7 @@ def gmail_create_draft(
     text_body: str,
     cc: str = "",
     bcc: str = "",
-    extra_headers: Optional[dict[str, str]] = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     draft_id = f"mock-draft-{next(_id_seq)}"
     message_id = f"mock-msg-{next(_id_seq)}"
@@ -78,8 +78,8 @@ def gmail_create_label(name: str) -> dict[str, Any]:
 @mcp.tool()
 def gmail_modify_labels(
     message_id: str,
-    add_label_ids: Optional[list[str]] = None,
-    remove_label_ids: Optional[list[str]] = None,
+    add_label_ids: list[str] | None = None,
+    remove_label_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     msg = _messages.get(message_id)
     if msg is None:

@@ -9,7 +9,6 @@ re-test ingestion/clustering/summarization themselves (covered elsewhere).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -57,7 +56,7 @@ def _seed_run(db_path: Path, status: str, **extra) -> None:
         conn.close()
 
 
-def _run_status(db_path: Path) -> Optional[str]:
+def _run_status(db_path: Path) -> str | None:
     conn = get_connection(db_path)
     try:
         row = conn.execute("SELECT status FROM runs WHERE id = ?", (RUN_ID,)).fetchone()
@@ -66,8 +65,8 @@ def _run_status(db_path: Path) -> Optional[str]:
         conn.close()
 
 
-def _patch_steps(monkeypatch: pytest.MonkeyPatch, calls: list[str], *, fail_on: Optional[str] = None,
-                 raise_exc: Optional[BaseException] = None) -> None:
+def _patch_steps(monkeypatch: pytest.MonkeyPatch, calls: list[str], *, fail_on: str | None = None,
+                 raise_exc: BaseException | None = None) -> None:
     """Replace each pipeline step with a recorder that appends its name to *calls*.
 
     Steps are responsible for their own status transitions in production; here

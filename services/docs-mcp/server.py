@@ -60,9 +60,9 @@ def _docs_svc() -> Any:
 
 
 def _drive_svc() -> Any:
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
     from google.oauth2 import service_account  # type: ignore[import-untyped]
     from google.oauth2.credentials import Credentials  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build  # type: ignore[import-untyped]
 
     raw = os.environ.get("GOOGLE_CREDENTIALS_JSON", "")
     info = json.loads(raw)

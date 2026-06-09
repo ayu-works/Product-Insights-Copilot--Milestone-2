@@ -12,10 +12,9 @@ manual backfills (``--week 2026-W15``) idempotent (E7-8).
 from __future__ import annotations
 
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import structlog
-import typer
 
 from agent.config import get_product, settings
 from agent.helpers import current_iso_week, make_run_id
@@ -51,7 +50,7 @@ _RESUME_INDEX: dict[str, int] = {
 }
 
 
-def _resume_index(status: Optional[str]) -> int:
+def _resume_index(status: str | None) -> int:
     return _RESUME_INDEX.get(status or "", 0)
 
 
@@ -161,7 +160,7 @@ def _step_publish(*, run_id: str, product_key: str, weeks: int) -> None:
     from agent.__main__ import publish
 
     max_attempts = max(1, settings.mcp_max_retries + 1)
-    last_exc: Optional[BaseException] = None
+    last_exc: BaseException | None = None
 
     for attempt in range(1, max_attempts + 1):
         # The deployed REST Docs server has no idempotency search — it appends
@@ -174,7 +173,7 @@ def _step_publish(*, run_id: str, product_key: str, weeks: int) -> None:
         target = "gmail" if (attempt > 1 and already_published_docs) else "both"
 
         try:
-            with span(f"mcp.docs.publish", run_id=run_id):
+            with span("mcp.docs.publish", run_id=run_id):
                 publish(run=run_id, target=target)
             break
         except MCPConnectionError as exc:
@@ -281,7 +280,7 @@ def _check_cost_spike(run_id: str, product_key: str) -> None:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-def run_pulse(*, product: str, weeks: int = 10, week: Optional[str] = None) -> None:
+def run_pulse(*, product: str, weeks: int = 10, week: str | None = None) -> None:
     """Run the full pipeline for one product, resuming from the last checkpoint.
 
     Raises:
@@ -300,7 +299,7 @@ def run_pulse(*, product: str, weeks: int = 10, week: Optional[str] = None) -> N
     bind_run_context(run_id, product_key)
 
     row = _get_run_row(run_id)
-    previous_status: Optional[str] = row["status"] if row else None
+    previous_status: str | None = row["status"] if row else None
 
     # EC7-1 — a previous trigger (e.g. last week's slow run) is still going: bail out.
     if previous_status == "in_progress":

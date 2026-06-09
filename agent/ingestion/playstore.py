@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import structlog
 
@@ -24,7 +25,7 @@ def _review_id(external_id: str) -> str:
     return hashlib.sha1(f"playstore{external_id}".encode()).hexdigest()
 
 
-def _parse_item(item: dict[str, Any], product_key: str) -> Optional[RawReview]:
+def _parse_item(item: dict[str, Any], product_key: str) -> RawReview | None:
     try:
         external_id = item["reviewId"]
         body = item.get("content", "") or ""
@@ -32,9 +33,9 @@ def _parse_item(item: dict[str, Any], product_key: str) -> Optional[RawReview]:
         at = item.get("at")
 
         if isinstance(at, datetime):
-            posted_at = at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+            posted_at = at if at.tzinfo else at.replace(tzinfo=UTC)
         else:
-            posted_at = datetime.now(timezone.utc)
+            posted_at = datetime.now(UTC)
 
         return RawReview(
             id=_review_id(external_id),
@@ -81,7 +82,7 @@ def _fetch_batch(
 def fetch_playstore_reviews(
     product: ProductConfig,
     weeks: int = 10,
-    _reviews_fn: Optional[Callable[..., Any]] = None,
+    _reviews_fn: Callable[..., Any] | None = None,
 ) -> list[RawReview]:
     """Paginate through Play Store reviews until *weeks* weeks back or _MAX_REVIEWS hit.
 
@@ -109,7 +110,7 @@ def fetch_playstore_reviews(
         reviews_fn = _reviews_fn
         sort_arg = None
 
-    cutoff = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+    cutoff = datetime.now(UTC) - timedelta(weeks=weeks)
     all_reviews: list[RawReview] = []
     continuation_token: Any = None
     page = 0
@@ -143,7 +144,7 @@ def fetch_playstore_reviews(
         for item in batch:
             at = item.get("at")
             if isinstance(at, datetime):
-                item_dt = at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+                item_dt = at if at.tzinfo else at.replace(tzinfo=UTC)
                 if item_dt < cutoff:
                     reached_cutoff = True
                     continue  # skip but keep scanning batch (not all are sorted perfectly)

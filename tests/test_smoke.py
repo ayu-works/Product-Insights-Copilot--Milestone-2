@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from agent.helpers import make_run_id, iso_week_to_dates, current_iso_week
+from agent.config import ProductConfig, get_product, load_products
+from agent.helpers import iso_week_to_dates, make_run_id
 from agent.storage import init_db, table_names
-from agent.config import load_products, get_product, ProductConfig
 
 
 def test_init_db_creates_all_tables(tmp_db: Path) -> None:

@@ -7,7 +7,7 @@ import json
 import re
 import sqlite3
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
@@ -15,8 +15,8 @@ from agent.ingestion.filters import scrub_pii
 from agent.models import (
     ActionIdea,
     AudienceValue,
-    PulseSummary,
     PulseStats,
+    PulseSummary,
     Quote,
     Theme,
     Window,
@@ -232,7 +232,7 @@ def select_quotes(
 
             # Find the source review
             rev_idx = q.get("review_index", -1)
-            source: Optional[dict[str, Any]] = None
+            source: dict[str, Any] | None = None
             if 0 <= rev_idx < len(cluster_reviews):
                 source = cluster_reviews[rev_idx]
             else:
@@ -334,7 +334,7 @@ def summarize_pulse(
     window: Window,
     client: LLMClient,
     max_themes: int = 3,
-    summaries_dir: Optional[Path] = None,
+    summaries_dir: Path | None = None,
 ) -> PulseSummary:
     """Full Phase 3 pipeline for one run.
 
@@ -455,7 +455,7 @@ def _persist_summary(
     run_id: str,
     summary: PulseSummary,
     metrics: RunMetrics,
-    summaries_dir: Optional[Path],
+    summaries_dir: Path | None,
 ) -> None:
     if summaries_dir:
         summaries_dir.mkdir(parents=True, exist_ok=True)
@@ -475,7 +475,7 @@ def _persist_partial(
     run_id: str,
     partial_themes: list[Theme],
     metrics: RunMetrics,
-    summaries_dir: Optional[Path],
+    summaries_dir: Path | None,
 ) -> None:
     if summaries_dir and partial_themes:
         summaries_dir.mkdir(parents=True, exist_ok=True)
